@@ -1,0 +1,40 @@
+---
+description: Entity 레이어 — cart.py 순수 로직, INV-* 불변식 테스트
+globs: src/cart.py,tests/entity/**
+alwaysApply: false
+---
+
+# Entity Track (Track B)
+
+`src/cart.py`는 **순수 도메인 로직**이다. Flask·HTTP·UI 의존성을 import 하지 않는다.
+
+## 테스트
+
+- 위치: `tests/entity/`
+- 마커: `@pytest.mark.entity`
+- 계약 ID: `INV-*` (어떤 입력에서도 깨지면 안 되는 규칙)
+
+## 예시
+
+```python
+# tests/entity/test_cart.py
+import pytest
+from src.cart import calculate_total
+
+@pytest.mark.entity
+def test_empty_cart_total_is_zero():
+    # INV-001
+    assert calculate_total([]) == 0
+```
+
+```python
+# src/cart.py — GREEN 단계
+def calculate_total(items):
+    return 0  # INV-001
+```
+
+## 원칙
+
+- MomTest로 발견한 계약만 테스트한다 (AC가 아닌 Invariant).
+- RED에서는 `tests/entity/`만 수정한다.
+- Boundary(`src/app.py`)는 Entity를 import 해 재사용한다 — 역방향 의존 금지.

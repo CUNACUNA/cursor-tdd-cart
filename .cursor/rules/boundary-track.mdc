@@ -1,0 +1,43 @@
+---
+description: Boundary 레이어 — Flask 주문 폼, E-*/UC-* 입력·UI 계약 테스트
+globs: src/app.py,tests/boundary/**
+alwaysApply: false
+---
+
+# Boundary Track (Track A)
+
+`src/app.py`는 Flask 주문 폼 등 **입력/UI 경계**다. 계산 로직은 `src/cart.py`(Entity)에 위임한다.
+
+## 테스트
+
+- 위치: `tests/boundary/`
+- 마커: `@pytest.mark.boundary`
+- 계약 ID: `E-*`(입력 계약), `UC-*`(유스케이스)
+
+## 예시
+
+```python
+# tests/boundary/test_order_form.py
+import pytest
+
+@pytest.mark.boundary
+def test_submit_empty_form_shows_error(client):
+    # E-001
+    response = client.post("/order", data={})
+    assert "error" in response.get_data(as_text=True)
+```
+
+```python
+# src/app.py — GREEN 단계
+from src.cart import calculate_total
+
+@app.route("/order", methods=["POST"])
+def order():
+    ...  # E-001
+```
+
+## 원칙
+
+- Boundary 테스트는 HTTP/폼/UI 계약을 검증한다. 도메인 불변식은 `tests/entity/`에 둔다.
+- RED에서는 `tests/boundary/`만 수정한다.
+- Entity 시그니처를 Boundary 편의로 바꾸지 않는다.
