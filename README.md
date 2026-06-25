@@ -6,7 +6,37 @@
 
 도메인 로직은 `src/cart.py`의 Entity 계층에 위치합니다. 테스트와 구현은 **계약 ID**를 기준으로 작성·추적하며, 각 계약 ID는 테스트와 구현을 잇는 **추적의 못** 역할을 합니다.
 
-현재 단계는 **RED 준비 단계**입니다. 아직 구현이 완료된 상태가 아닙니다.
+현재 단계는 **1차 GREEN**입니다. 소계(INV-1)와 입력 검증(E-1, E-2)까지 구현되었고, 할인·최종 금액(INV-2~4)은 RED 대기 중입니다.
+
+## Release Notes — v0.1.0 (소계 GREEN)
+
+**장바구니 소계 계산(INV-1)과 입력 검증(E-1, E-2)을 TDD 1차 GREEN으로 구현했습니다.**
+
+> 기준: `124f18c`(프로젝트 셋업) → `3843b6f`(HEAD) · 브랜치 `staging-spec/entity-cart`  
+> 테스트: **4 passed, 5 failed** — 할인·최종금액(INV-2~4)은 RED 대기
+
+### ✨ 기능
+
+- **INV-1** — `subtotal(items)`가 `Σ(price × qty)`를 반환합니다.
+- **E-1** — `items`가 `None`이면 `TypeError`를 발생시킵니다.
+- **E-2** — `price` 또는 `qty`가 음수이면 해당 인덱스를 담은 `ValueError`를 발생시킵니다.
+- Entity / Boundary **Dual-Track** 테스트 구조를 도입했습니다.
+  - `tests/entity/test_cart.py` — `@pytest.mark.entity` (INV-*)
+  - `tests/boundary/test_subtotal_input.py` — `@pytest.mark.boundary` (E-*)
+
+### 🧹 기타
+
+- **RED** — INV-1~INV-4, E-1, E-2 계약 스켈레톤 테스트 및 `cart.py` API 스텁 추가
+- **문서** — PRD, README 계약 ID, Report/Prompting Export, EXPORT 커맨드 동기화
+- **프로젝트 셋업** — AGENTS.md, Cursor rules(c2c-work / entity-track / boundary-track), pytest 마커 설정
+
+### 🔜 다음 예정 (미구현)
+
+| 계약 | 상태 |
+| ---- | ---- |
+| INV-2 문턱 할인 (`apply_threshold_discount`) | RED — `NotImplementedError` |
+| INV-3 VIP 할인 순서 (`final_total`) | RED — `NotImplementedError` |
+| INV-4 `0 ≤ final ≤ subtotal` | RED — `NotImplementedError` |
 
 ## 핵심 원칙
 
@@ -62,7 +92,7 @@ VIP 할인 규칙입니다. 문턱 할인을 먼저 적용한 뒤, VIP 고객이
 
 `E-*` 계약은 입력 검증 경계에 가까운 규칙입니다. 별도 Boundary 모듈이 없는 **현재 실습**에서는 도메인 함수 진입점에서 입력을 검증합니다.
 
-## 예상 파일 구조
+## 파일 구조
 
 ```text
 .
@@ -70,7 +100,10 @@ VIP 할인 규칙입니다. 문턱 할인을 먼저 적용한 뒤, VIP 고객이
 ├── src/
 │   └── cart.py
 └── tests/
-    └── test_cart.py
+    ├── entity/
+    │   └── test_cart.py          # @pytest.mark.entity  — INV-*
+    └── boundary/
+        └── test_subtotal_input.py  # @pytest.mark.boundary — E-*
 ```
 
 ## TDD 진행 순서
@@ -83,6 +116,8 @@ VIP 할인 규칙입니다. 문턱 할인을 먼저 적용한 뒤, VIP 고객이
 
 ```bash
 pytest -q
+pytest tests/entity -q      # Entity(INV-*)만
+pytest tests/boundary -q    # Boundary(E-*)만
 ```
 
 `-q`는 **quiet mode**로, 테스트 결과를 간략하게 출력합니다.
