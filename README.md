@@ -49,12 +49,6 @@
 
 | ID    | 계약(불변식 / 에러)                                                 | 근거 레벨 | 계층        |
 | ----- | ------------------------------------------------------------ | ----- | --------- |
-| INV-1 | `subtotal(items) == Σ(price × qty)`                          | —     | Entity    |
-| INV-2 | `amount ≥ 50000 → round(amount×0.9)` / `< 50000 → 그대로` 경계 포함 | L1    | Entity    |
-| INV-3 | `final = 문턱할인 적용 후, VIP면 round(×0.95)`. 순서 문턱→VIP 고정         | L2    | Entity    |
-| INV-4 | 모든 입력에서 `0 ≤ final_total ≤ subtotal`. 할인은 금액을 늘리지 않는다        | L3    | Entity    |
-| E-1   | `items is None → TypeError`                                  | L0    | Boundary* |
-| E-2   | `price` 또는 `qty`가 음수 → `ValueError`, 인덱스 포함                  | L0    | Boundary* |
 
 ## 계약 ID 설명
 
@@ -111,6 +105,45 @@ VIP 할인 규칙입니다. 문턱 할인을 먼저 적용한 뒤, VIP 고객이
 1. **RED** — 계약 ID별로 실패하는 테스트를 먼저 작성합니다.
 2. **GREEN** — 해당 계약 ID를 만족하는 최소 구현만 추가합니다. 구현 줄에는 충족한 계약 ID를 주석으로 표기합니다.
 3. **REFACTOR** — 모든 테스트가 통과한 상태에서만 구조를 개선합니다. 리팩터 전후 `pytest -q`로 동작 불변을 확인합니다.
+
+## REFACTOR 계획 (Track B · subtotal)
+
+E-2 검증을 `_validate_line_items(items)` private 함수로 추출하는 REFACTOR 계획입니다. **아직 적용 전**이며, 문서상 계획만 기록합니다.
+
+### 목적
+
+- **Mixed Responsibilities** 해소 — E-2 검증만 분리하고, E-1(`items is None`)은 `subtotal`에 유지합니다.
+- 호출 순서: E-1 → `_validate_line_items` (E-2) → INV-1 합산.
+
+### 변경 범위
+
+| 항목 | 내용 |
+| ---- | ---- |
+| **변경 파일** | `src/cart.py`만 |
+| **테스트** | `tests/` 수정 없음 (public `subtotal` 경로로 검증) |
+| **예상 diff** | `cart.py` **+3~5줄** |
+
+### 제외 (이번 REFACTOR에서 하지 않음)
+
+- `sum()` 변환
+- 상수 추출 (`THRESHOLD` 등)
+- `apply_threshold_discount` / `final_total` 변경
+
+### 동작 불변 체크리스트
+
+리팩터 전후 아래가 동일해야 합니다.
+
+| # | 입력 | 기대 | 계약 |
+| --- | ---- | ---- | ---- |
+| 1 | `None` | `TypeError` | E-1 |
+| 2 | `[(-100, 2)]` | `ValueError`, 인덱스 `"0"` 포함 | E-2 |
+| 3 | `[(1000, 1), (2000, -3)]` | `ValueError`, 인덱스 `"1"` 포함 | E-2 |
+| 4 | `[(1000, 7)]` | `7000` | INV-1 |
+
+### 완료 기준
+
+- REFACTOR **전** `pytest -q` 결과와 **후** 결과가 동일(GREEN 유지).
+- `raise ValueError(i)` 형식 및 합계 결과가 체크리스트와 일치.
 
 ## 테스트 실행
 
